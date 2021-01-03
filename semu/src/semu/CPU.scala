@@ -25,6 +25,9 @@ case class CPU(memory: Array[Int], start: Int) {
         case 0xaa =>
           tax()
           loop()
+        case 0xe8 =>
+          inx()
+          loop()
         case 0x00 =>
           IO.unit
         case opcode =>
@@ -40,14 +43,19 @@ case class CPU(memory: Array[Int], start: Int) {
     updateZeroAndNegativeFlags(_registerA)
   }
 
-  private def updateZeroAndNegativeFlags(result: Int): Unit = {
-    _status = if (result == 0) _status + CpuStatus.Zero else _status - CpuStatus.Zero
-    _status = if ((result & 0x80) != 0) _status + CpuStatus.Negative else _status - CpuStatus.Negative
-  }
-
   private def tax(): Unit = {
     _registerX = _registerA
     updateZeroAndNegativeFlags(_registerX)
+  }
+
+  private def inx(): Unit = {
+    _registerX = _registerX.wrapAddByte(1)
+    updateZeroAndNegativeFlags(_registerX)
+  }
+
+  private def updateZeroAndNegativeFlags(result: Int): Unit = {
+    _status = if (result == 0) _status + CpuStatus.Zero else _status - CpuStatus.Zero
+    _status = if ((result & 0x80) != 0) _status + CpuStatus.Negative else _status - CpuStatus.Negative
   }
 
   def registerA: Int = _registerA
