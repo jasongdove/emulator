@@ -6,20 +6,20 @@ import semu.model.CpuStatus
 import scala.annotation.tailrec
 
 case class CPU(memory: Array[Int], start: Int) {
-  private var _registerA: Int = 0
-  private var _registerX: Int = 0
-  private var _status = CpuStatus.ValueSet.empty
-  private var _programCounter: Int = start
+  var registerA: Int = 0
+  var registerX: Int = 0
+  var status: CpuStatus.ValueSet = CpuStatus.ValueSet.empty
+  var programCounter: Int = start
 
   def run(): IO[Unit] = {
     @tailrec
     def loop(): IO[Unit] = {
-      val current = memory(_programCounter)
-      _programCounter += 1
+      val current = memory(programCounter)
+      programCounter += 1
       current match {
         case 0xa9 =>
-          val param = memory(_programCounter)
-          _programCounter += 1
+          val param = memory(programCounter)
+          programCounter += 1
           lda(param)
           loop()
         case 0xaa =>
@@ -39,35 +39,27 @@ case class CPU(memory: Array[Int], start: Int) {
   }
 
   private def lda(value: Int): Unit = {
-    _registerA = value
-    updateZeroAndNegativeFlags(_registerA)
+    registerA = value
+    updateZeroAndNegativeFlags(registerA)
   }
 
   private def tax(): Unit = {
-    _registerX = _registerA
-    updateZeroAndNegativeFlags(_registerX)
+    registerX = registerA
+    updateZeroAndNegativeFlags(registerX)
   }
 
   private def inx(): Unit = {
-    _registerX = _registerX.wrapAddByte(1)
-    updateZeroAndNegativeFlags(_registerX)
+    registerX = registerX.wrapAddByte(1)
+    updateZeroAndNegativeFlags(registerX)
   }
 
   private def updateZeroAndNegativeFlags(result: Int): Unit = {
-    _status = if (result == 0) _status + CpuStatus.Zero else _status - CpuStatus.Zero
-    _status = if ((result & 0x80) != 0) _status + CpuStatus.Negative else _status - CpuStatus.Negative
+    status = if (result == 0) status + CpuStatus.Zero else status - CpuStatus.Zero
+    status = if ((result & 0x80) != 0) status + CpuStatus.Negative else status - CpuStatus.Negative
   }
 
-  def registerA: Int = _registerA
-
-  def registerX: Int = _registerX
-
-  def status: CpuStatus.ValueSet = _status
-
-  def programCounter: Int = _programCounter
-
   override def toString: String =
-    s"a: ${_registerA}, x: ${_registerX} s: ${_status}, pc: 0x${_programCounter.toHexString}"
+    s"a: $registerA, x: $registerX s: $status, pc: 0x${programCounter.toHexString}"
 }
 
 object CPU {

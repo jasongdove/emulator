@@ -25,8 +25,9 @@ object CpuSuite extends SimpleIOSuite {
   }
 
   simpleTest("TAX should set zero flag") {
-    val program = Array(0xa9, 0x00, 0xaa, 0x00)
+    val program = Array(0xaa, 0x00)
     val cpu = CPU.load(program)
+    cpu.registerA = 0
     for {
       _ <- cpu.run()
       _ <- expect(cpu.registerX == 0).failFast
@@ -35,8 +36,9 @@ object CpuSuite extends SimpleIOSuite {
   }
 
   simpleTest("TAX should set negative flag") {
-    val program = Array(0xa9, 0xff, 0xaa, 0x00)
+    val program = Array(0xaa, 0x00)
     val cpu = CPU.load(program)
+    cpu.registerA = 0xff
     for {
       _ <- cpu.run()
       _ <- expect(cpu.registerX == 0xff).failFast
@@ -45,8 +47,9 @@ object CpuSuite extends SimpleIOSuite {
   }
 
   simpleTest("INX should set zero flag") {
-    val program = Array(0xa9, 0xff, 0xaa, 0xe8, 0x00)
+    val program = Array(0xe8, 0x00)
     val cpu = CPU.load(program)
+    cpu.registerX = 0xff
     for {
       _ <- cpu.run()
       _ <- expect(cpu.registerX == 0).failFast
@@ -55,8 +58,9 @@ object CpuSuite extends SimpleIOSuite {
   }
 
   simpleTest("INX should set negative flag") {
-    val program = Array(0xa9, 0x7f, 0xaa, 0xe8, 0x00)
+    val program = Array(0xe8, 0x00)
     val cpu = CPU.load(program)
+    cpu.registerX = 0x7f
     for {
       _ <- cpu.run()
       _ <- expect(cpu.registerX == 0x80).failFast
