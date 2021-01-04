@@ -99,4 +99,16 @@ object CpuSuite extends SimpleIOSuite {
       _ <- expect(cpu.registerX == 1).failFast
     } yield success
   }
+
+  simpleTest("JSR should set stack and program counter correctly") {
+    val program = Array(0x20, 0x0d, 0x06)
+    val cpu = CPU.load(program, 0x500)
+    for {
+      _ <- IO(cpu.run())
+      // stack should contain return address - 1 (so address of last byte in JSR)
+      _ <- expect(cpu.stackPopUShort() == 0x0502).failFast
+      // we end up with address + 1 after we terminate because we read the 0x00 (BRK) at address
+      _ <- expect(cpu.programCounter == 0x060e).failFast
+    } yield success
+  }
 }

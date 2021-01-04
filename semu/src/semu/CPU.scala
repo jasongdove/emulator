@@ -1,11 +1,14 @@
 package semu
 
-import semu.model.{AddressingMode, CpuStatus}
+import semu.model._
 
 case class CPU(memory: Array[Int]) {
+  private val STACK: Int = 0x1000
+
   var registerA: Int = 0
   var registerX: Int = 0
   var registerY: Int = 0
+  var stackPointer: Int = 0xff
   var status: CpuStatus.ValueSet = CpuStatus.ValueSet.empty
   var programCounter: Int = memReadUShort(0xfffc)
 
@@ -21,14 +24,11 @@ case class CPU(memory: Array[Int]) {
           result = Some(Some(UnsupportedOpCode(current)))
         case Some(opcode) =>
           opcode.instruction match {
-            case Instruction.BRK =>
-              result = Some(None)
-            case Instruction.TAX =>
-              tax()
-            case Instruction.INX =>
-              inx()
-            case Instruction.LDA =>
-              lda(opcode.addressingMode)
+            case Instruction.BRK => result = Some(None)
+            case Instruction.TAX => tax()
+            case Instruction.INX => inx()
+            case Instruction.LDA => lda(opcode.addressingMode)
+            case Instruction.JSR => jsr(opcode)
           }
 
           if (counterState == programCounter)
@@ -58,8 +58,31 @@ case class CPU(memory: Array[Int]) {
     memWrite(addr + 1, hi)
   }
 
+  def stackPushUShort(data: Int): Unit = {
+    val hi = data >> 8
+    val lo = data & 0xff
+    stackPush(hi)
+    stackPush(lo)
+  }
+
+  def stackPush(data: Int): Unit = {
+    memWrite(STACK + stackPointer, data)
+    stackPointer = stackPointer.wrapSubUByte(1)
+  }
+
+  def stackPop(): Int = {
+    stackPointer = stackPointer.wrapAddUByte(1)
+    memRead(STACK + stackPointer)
+  }
+
+  def stackPopUShort(): Int = {
+    val lo = stackPop()
+    val hi = stackPop()
+    (hi << 8) | lo
+  }
+
   override def toString: String =
-    s"a: $registerA, x: $registerX s: $status, pc: 0x${programCounter.toHexString}"
+    s"a: 0x${registerA.toHexString}, x: 0x${registerX.toHexString} s: $status, pc: 0x${programCounter.toHexString}, sp: 0x${stackPointer.toHexString}"
 
   private def lda(mode: AddressingMode): Unit = {
     val addr = getOperandAddress(mode)
@@ -76,6 +99,12 @@ case class CPU(memory: Array[Int]) {
   private def inx(): Unit = {
     registerX = registerX.wrapAddUByte(1)
     updateZeroAndNegativeFlags(registerX)
+  }
+
+  private def jsr(opcode: OpCode): Unit = {
+    val targetAddress = getOperandAddress(opcode.addressingMode)
+    stackPushUShort(programCounter + opcode.bytes - 2)
+    programCounter = targetAddress
   }
 
   private def getOperandAddress(mode: AddressingMode): Int =
@@ -122,7 +151,7 @@ case class CPU(memory: Array[Int]) {
 object CPU {
   def load(program: Array[Int], start: Int = 0x8000): CPU = {
     val memory = Array.ofDim[Int](0xffff)
-    Array.copy(program, 0, memory, 0x8000, program.length)
+    Array.copy(program, 0, memory, start, program.length)
     memory(0xfffc) = start
     CPU(memory)
   }

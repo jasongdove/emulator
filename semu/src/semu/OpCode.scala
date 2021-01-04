@@ -1,6 +1,6 @@
 package semu
 
-import semu.model.AddressingMode
+import semu.model._
 
 case class OpCode(code: Int, instruction: Instruction, bytes: Int, cycles: Int, addressingMode: AddressingMode)
 
@@ -16,6 +16,7 @@ object OpCode {
     OpCode(0xbd, Instruction.LDA, 3, 4, AddressingMode.AbsoluteX),
     OpCode(0xb9, Instruction.LDA, 3, 4, AddressingMode.AbsoluteY),
     OpCode(0xa1, Instruction.LDA, 2, 6, AddressingMode.IndirectX),
-    OpCode(0xb1, Instruction.LDA, 2, 5, AddressingMode.IndirectY)
+    OpCode(0xb1, Instruction.LDA, 2, 5, AddressingMode.IndirectY),
+    OpCode(0x20, Instruction.JSR, 3, 6, AddressingMode.Absolute)
   ).map(opcode => opcode.code -> opcode).toMap
 }
