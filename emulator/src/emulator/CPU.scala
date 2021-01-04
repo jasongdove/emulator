@@ -1,6 +1,7 @@
 package emulator
 
 import emulator.model._
+import scala.annotation.tailrec
 
 case class CPU(memory: Array[Int]) {
   private val STACK: Int = 0x1000
@@ -13,30 +14,42 @@ case class CPU(memory: Array[Int]) {
   var programCounter: Int = memReadUShort(0xfffc)
 
   def run(): Option[EmulatorError] = {
-    var result: Option[Option[EmulatorError]] = None
+    def eval(op: => Unit, opcode: OpCode): Unit = {
+      val counterState = programCounter
+      op
+      if (counterState == programCounter)
+        programCounter += opcode.bytes - 1
+    }
 
-    while (result.isEmpty) {
+    @tailrec
+    def loop(): Option[EmulatorError] = {
       val current = memRead(programCounter)
       programCounter += 1
-      val counterState = programCounter
+
       OpCode.opCodes.get(current) match {
         case None =>
-          result = Some(Some(UnsupportedOpCode(current)))
+          Some(UnsupportedOpCode(current))
         case Some(opcode) =>
           opcode.instruction match {
-            case Instruction.BRK => result = Some(None)
-            case Instruction.TAX => tax()
-            case Instruction.INX => inx()
-            case Instruction.LDA => lda(opcode.addressingMode)
-            case Instruction.JSR => jsr(opcode)
+            case Instruction.BRK =>
+              None
+            case Instruction.TAX =>
+              eval(tax(), opcode)
+              loop()
+            case Instruction.INX =>
+              eval(inx(), opcode)
+              loop()
+            case Instruction.LDA =>
+              eval(lda(opcode.addressingMode), opcode)
+              loop()
+            case Instruction.JSR =>
+              eval(jsr(opcode), opcode)
+              loop()
           }
-
-          if (counterState == programCounter)
-            programCounter += opcode.bytes - 1
       }
     }
 
-    result.get
+    loop()
   }
 
   def memRead(addr: Int): Int =

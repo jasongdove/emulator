@@ -1,5 +1,6 @@
 import mill._
 import mill.scalalib._
+import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 
 object emulator extends ScalaModule {
   def scalaVersion = "2.13.4"
