@@ -15,24 +15,24 @@ case class CPU(memory: Array[Int]) {
     while (result.isEmpty) {
       val current = memRead(programCounter)
       programCounter += 1
-      current match {
-        case 0xa9 =>
-          lda(AddressingMode.Immediate)
-          programCounter += 1
-        case 0xa5 =>
-          lda(AddressingMode.ZeroPage)
-          programCounter += 1
-        case 0xb5 =>
-          lda(AddressingMode.ZeroPageX)
-          programCounter += 1
-        case 0xaa =>
-          tax()
-        case 0xe8 =>
-          inx()
-        case 0x00 =>
-          result = Some(None)
-        case opcode =>
-          result = Some(Some(UnsupportedOpCode(opcode)))
+      val counterState = programCounter
+      OpCode.opCodes.get(current) match {
+        case None =>
+          result = Some(Some(UnsupportedOpCode(current)))
+        case Some(opcode) =>
+          opcode.instruction match {
+            case Instruction.BRK =>
+              result = Some(None)
+            case Instruction.TAX =>
+              tax()
+            case Instruction.INX =>
+              inx()
+            case Instruction.LDA =>
+              lda(opcode.addressingMode)
+          }
+
+          if (counterState == programCounter)
+            programCounter += opcode.bytes - 1
       }
     }
 
@@ -87,13 +87,13 @@ case class CPU(memory: Array[Int]) {
     (hi << 8) | lo
   }
 
-  private def memRead(addr: Int): Int =
-    memory(addr)
-
   private def updateZeroAndNegativeFlags(result: Int): Unit = {
     status = if (result == 0) status + CpuStatus.Zero else status - CpuStatus.Zero
     status = if ((result & 0x80) != 0) status + CpuStatus.Negative else status - CpuStatus.Negative
   }
+
+  private def memRead(addr: Int): Int =
+    memory(addr)
 
   private def tax(): Unit = {
     registerX = registerA
