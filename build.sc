@@ -4,13 +4,9 @@ import mill.scalalib._
 object semu extends ScalaModule {
   def scalaVersion = "2.13.4"
 
-  def ivyDeps =
-    Agg(
-      ivy"org.typelevel::cats-effect:2.1.3"
-    )
-
   object test extends Tests {
     def ivyDeps = Agg(
+      ivy"org.typelevel::cats-effect:2.1.3",
       ivy"com.disneystreaming::weaver-framework:0.5.0",
       ivy"com.disneystreaming::weaver-scalacheck:0.5.0",
       ivy"com.disneystreaming::weaver-zio:0.5.0"
