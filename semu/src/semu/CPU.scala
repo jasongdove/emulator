@@ -81,7 +81,7 @@ case class CPU(memory: Array[Int]) {
       case AddressingMode.NoneAddressing => ???
     }
 
-  private def memReadUShort(addr: Int): Int = {
+  def memReadUShort(addr: Int): Int = {
     val lo = memRead(addr)
     val hi = memRead(addr + 1)
     (hi << 8) | lo
@@ -92,7 +92,7 @@ case class CPU(memory: Array[Int]) {
     status = if ((result & 0x80) != 0) status + CpuStatus.Negative else status - CpuStatus.Negative
   }
 
-  private def memRead(addr: Int): Int =
+  def memRead(addr: Int): Int =
     memory(addr)
 
   private def tax(): Unit = {
@@ -103,6 +103,13 @@ case class CPU(memory: Array[Int]) {
   private def inx(): Unit = {
     registerX = registerX.wrapAddUByte(1)
     updateZeroAndNegativeFlags(registerX)
+  }
+
+  def memWriteUShort(addr: Int, data: Int): Unit = {
+    val hi = data >> 8
+    val lo = data & 0xff
+    memWrite(addr, lo)
+    memWrite(addr + 1, hi)
   }
 
   def memWrite(addr: Int, data: Int): Unit =

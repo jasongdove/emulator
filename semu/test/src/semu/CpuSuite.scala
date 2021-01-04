@@ -5,6 +5,27 @@ import semu.model.CpuStatus
 import weaver._
 
 object CpuSuite extends SimpleIOSuite {
+  simpleTest("memWriteUShort should write in little-endian") {
+    val program = Array(0xa9, 0x00, 0x00)
+    val cpu = CPU.load(program)
+    for {
+      _ <- IO(cpu.memWriteUShort(0xf000, 0x8090))
+      _ <- expect(cpu.memory(0xf000) == 0x90).failFast
+      _ <- expect(cpu.memory(0xf001) == 0x80).failFast
+    } yield success
+  }
+
+  simpleTest("memReadUShort should read in little-endian") {
+    val program = Array(0xa9, 0x00, 0x00)
+    val cpu = CPU.load(program)
+    cpu.memWrite(0xf000, 0x90)
+    cpu.memWrite(0xf001, 0x80)
+    for {
+      result <- IO(cpu.memReadUShort(0xf000))
+      _ <- expect(result == 0x8090).failFast
+    } yield success
+  }
+
   simpleTest("LDA should set zero flag") {
     val program = Array(0xa9, 0x00, 0x00)
     val cpu = CPU.load(program)
