@@ -39,11 +39,43 @@ case class CPU(memory: Array[Int]) {
     result.get
   }
 
+  def memRead(addr: Int): Int =
+    memory(addr)
+
+  def memWrite(addr: Int, data: Int): Unit =
+    memory(addr) = data
+
+  def memReadUShort(addr: Int): Int = {
+    val lo = memRead(addr)
+    val hi = memRead(addr + 1)
+    (hi << 8) | lo
+  }
+
+  def memWriteUShort(addr: Int, data: Int): Unit = {
+    val hi = data >> 8
+    val lo = data & 0xff
+    memWrite(addr, lo)
+    memWrite(addr + 1, hi)
+  }
+
+  override def toString: String =
+    s"a: $registerA, x: $registerX s: $status, pc: 0x${programCounter.toHexString}"
+
   private def lda(mode: AddressingMode): Unit = {
     val addr = getOperandAddress(mode)
     val value = memRead(addr)
     registerA = value
     updateZeroAndNegativeFlags(registerA)
+  }
+
+  private def tax(): Unit = {
+    registerX = registerA
+    updateZeroAndNegativeFlags(registerX)
+  }
+
+  private def inx(): Unit = {
+    registerX = registerX.wrapAddUByte(1)
+    updateZeroAndNegativeFlags(registerX)
   }
 
   private def getOperandAddress(mode: AddressingMode): Int =
@@ -81,42 +113,10 @@ case class CPU(memory: Array[Int]) {
       case AddressingMode.NoneAddressing => ???
     }
 
-  def memReadUShort(addr: Int): Int = {
-    val lo = memRead(addr)
-    val hi = memRead(addr + 1)
-    (hi << 8) | lo
-  }
-
   private def updateZeroAndNegativeFlags(result: Int): Unit = {
     status = if (result == 0) status + CpuStatus.Zero else status - CpuStatus.Zero
     status = if ((result & 0x80) != 0) status + CpuStatus.Negative else status - CpuStatus.Negative
   }
-
-  def memRead(addr: Int): Int =
-    memory(addr)
-
-  private def tax(): Unit = {
-    registerX = registerA
-    updateZeroAndNegativeFlags(registerX)
-  }
-
-  private def inx(): Unit = {
-    registerX = registerX.wrapAddUByte(1)
-    updateZeroAndNegativeFlags(registerX)
-  }
-
-  def memWriteUShort(addr: Int, data: Int): Unit = {
-    val hi = data >> 8
-    val lo = data & 0xff
-    memWrite(addr, lo)
-    memWrite(addr + 1, hi)
-  }
-
-  def memWrite(addr: Int, data: Int): Unit =
-    memory(addr) = data
-
-  override def toString: String =
-    s"a: $registerA, x: $registerX s: $status, pc: 0x${programCounter.toHexString}"
 }
 
 object CPU {
