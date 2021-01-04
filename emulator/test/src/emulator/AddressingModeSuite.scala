@@ -1,4 +1,4 @@
-package semu
+package emulator
 
 import cats.effect.IO
 import weaver._

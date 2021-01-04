@@ -1,6 +1,6 @@
-package semu
+package emulator
 
-import semu.model._
+import emulator.model._
 
 case class CPU(memory: Array[Int]) {
   private val STACK: Int = 0x1000
@@ -12,8 +12,8 @@ case class CPU(memory: Array[Int]) {
   var status: CpuStatus.ValueSet = CpuStatus.ValueSet.empty
   var programCounter: Int = memReadUShort(0xfffc)
 
-  def run(): Option[SemuError] = {
-    var result: Option[Option[SemuError]] = None
+  def run(): Option[EmulatorError] = {
+    var result: Option[Option[EmulatorError]] = None
 
     while (result.isEmpty) {
       val current = memRead(programCounter)

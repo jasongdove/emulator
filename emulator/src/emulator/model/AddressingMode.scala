@@ -1,4 +1,4 @@
-package semu.model
+package emulator.model
 
 sealed trait AddressingMode
 

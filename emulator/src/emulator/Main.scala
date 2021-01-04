@@ -1,4 +1,4 @@
-package semu
+package emulator
 
 object Main {
   def main(args: Array[String]): Unit = {

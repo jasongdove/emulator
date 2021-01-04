@@ -1,7 +1,7 @@
 import mill._
 import mill.scalalib._
 
-object semu extends ScalaModule {
+object emulator extends ScalaModule {
   def scalaVersion = "2.13.4"
 
   object test extends Tests {

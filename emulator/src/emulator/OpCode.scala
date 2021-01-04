@@ -1,6 +1,6 @@
-package semu
+package emulator
 
-import semu.model._
+import emulator.model._
 
 case class OpCode(code: Int, instruction: Instruction, bytes: Int, cycles: Int, addressingMode: AddressingMode)
 

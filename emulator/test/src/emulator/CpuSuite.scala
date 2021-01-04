@@ -1,7 +1,7 @@
-package semu
+package emulator
 
 import cats.effect.IO
-import semu.model.CpuStatus
+import emulator.model.CpuStatus
 import weaver._
 
 object CpuSuite extends SimpleIOSuite {

@@ -1,4 +1,4 @@
-package semu.model
+package emulator.model
 
 object CpuStatus extends Enumeration {
   type CpuStatus = Value
