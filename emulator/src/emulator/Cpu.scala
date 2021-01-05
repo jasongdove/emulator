@@ -96,6 +96,16 @@ case class Cpu(memory: MemoryMap) {
             case Instruction.LSR_A => loop(lsr_a(opcode, nextState))
             case Instruction.LSR   => loop(lsr(opcode, nextState))
             case Instruction.NOP   => loop(nextState)
+            case Instruction.ORA   => loop(ora(opcode, nextState))
+            case Instruction.PHA   => loop(pha(nextState))
+            case Instruction.PHP   => loop(php(nextState))
+            case Instruction.PLA   => loop(pla(opcode, nextState))
+            case Instruction.PLP   => loop(plp(opcode, nextState))
+            case Instruction.ROL_A => loop(rol_a(opcode, nextState))
+            case Instruction.ROL   => loop(rol(opcode, nextState))
+            case Instruction.ROR_A => loop(ror_a(opcode, nextState))
+            case Instruction.ROR   => loop(ror(opcode, nextState))
+            case Instruction.RTI   => loop(rti(nextState))
             case Instruction.RTS   => loop(rts(nextState))
             case Instruction.SBC   => loop(sbc(opcode, nextState))
             case Instruction.SEC   => loop(sec(opcode, nextState))
@@ -134,10 +144,7 @@ case class Cpu(memory: MemoryMap) {
 
   private def asl_a(opcode: OpCode, state: CpuState): CpuState = {
     val result = state.a << 1
-    val flags = state.flags
-      .withCarry((state.a & 0x80) != 0x00)
-      .withZero(result == 0x00)
-      .withNegative((result & 0x80) != 0x00)
+    val flags = state.flags.shiftedLeft(state.a, result)
     CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
   }
 
@@ -146,15 +153,13 @@ case class Cpu(memory: MemoryMap) {
       .map { address =>
         val contents = memory.read(address)
         val result = contents << 1
-        val flags = state.flags
-          .withCarry((contents & 0x80) != 0x00)
-          .withZero(result == 0x00)
-          .withNegative((result & 0x80) != 0x00)
+        val flags = state.flags.shiftedLeft(contents, result)
         memory.write(address, result)
         state.nextFlags(flags, opcode)
       }
       .getOrElse(state.next(opcode))
   }
+
   private def bcc(state: CpuState): CpuState =
     branch(!state.flags.contains(CpuFlags.Carry), state)
 
@@ -230,11 +235,7 @@ case class Cpu(memory: MemoryMap) {
   private def eor(opcode: OpCode, state: CpuState): CpuState =
     getOperandAddress(opcode, state)
       .map { address =>
-        val a = memory.read(address) ^ state.a
-        val flags = state.flags
-          .withZero(a == 0x00)
-          .withNegative((a & 0x80) != 0x00)
-        state.nextFlags(flags, opcode)
+        state.nextA(memory.read(address) ^ state.a, opcode)
       }
       .getOrElse(state.next(opcode))
 
@@ -307,6 +308,75 @@ case class Cpu(memory: MemoryMap) {
         state.nextFlags(flags, opcode)
       }
       .getOrElse(state.next(opcode))
+  }
+
+  private def ora(opcode: OpCode, state: CpuState): CpuState =
+    getOperandAddress(opcode, state)
+      .map { address =>
+        state.nextA(memory.read(address) | state.a, opcode)
+      }
+      .getOrElse(state.next(opcode))
+
+  private def pha(state: CpuState): CpuState =
+    memory.stackPush(state, state.a)
+
+  private def php(state: CpuState): CpuState =
+    memory.stackPush(state, state.flags.toByteInstruction)
+
+  private def pla(opcode: OpCode, state: CpuState): CpuState = {
+    val (nextState, a) = memory.stackPop(state)
+    nextState.nextA(a, opcode)
+  }
+
+  private def plp(opcode: OpCode, state: CpuState): CpuState = {
+    val (nextState, flagsByte) = memory.stackPop(state)
+    nextState.nextFlags(CpuFlags.fromByte(flagsByte), opcode)
+  }
+
+  private def rol_a(opcode: OpCode, state: CpuState): CpuState = {
+    val rotated = state.a << 1
+    val result = if (state.flags.contains(CpuFlags.Carry)) rotated | 0x01 else rotated
+    val flags = state.flags.shiftedLeft(state.a, result)
+    CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
+  }
+
+  private def rol(opcode: OpCode, state: CpuState): CpuState = {
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val contents = memory.read(address)
+        val rotated = contents << 1
+        val result = if (state.flags.contains(CpuFlags.Carry)) rotated | 0x01 else rotated
+        val flags = state.flags.shiftedLeft(contents, result)
+        memory.write(address, result)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+  }
+
+  private def ror_a(opcode: OpCode, state: CpuState): CpuState = {
+    val rotated = state.a >> 1
+    val result = if (state.flags.contains(CpuFlags.Carry)) rotated | 0x80 else rotated
+    val flags = state.flags.shiftedRight(state.a, result)
+    CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
+  }
+
+  private def ror(opcode: OpCode, state: CpuState): CpuState = {
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val contents = memory.read(address)
+        val rotated = contents >> 1
+        val result = if (state.flags.contains(CpuFlags.Carry)) rotated | 0x80 else rotated
+        val flags = state.flags.shiftedRight(contents, result)
+        memory.write(address, result)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+  }
+
+  private def rti(state: CpuState): CpuState = {
+    val (state1, flagsByte) = memory.stackPopUShort(state)
+    val (state2, programCounter) = memory.stackPopUShort(state1)
+    CpuState(state2.a, state2.x, state2.y, state2.stackPointer, programCounter, CpuFlags.fromByte(flagsByte))
   }
 
   private def rts(state: CpuState): CpuState = {

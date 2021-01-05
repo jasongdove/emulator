@@ -39,6 +39,16 @@ object Instruction {
   case object LSR_A extends Instruction
   case object LSR extends Instruction
   case object NOP extends Instruction
+  case object ORA extends Instruction
+  case object PHA extends Instruction
+  case object PHP extends Instruction
+  case object PLA extends Instruction
+  case object PLP extends Instruction
+  case object ROL_A extends Instruction
+  case object ROL extends Instruction
+  case object ROR_A extends Instruction
+  case object ROR extends Instruction
+  case object RTI extends Instruction
   case object RTS extends Instruction
   case object SBC extends Instruction
   case object SEC extends Instruction

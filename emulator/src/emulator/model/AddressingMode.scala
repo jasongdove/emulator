@@ -3,6 +3,7 @@ package emulator.model
 sealed trait AddressingMode
 
 object AddressingMode {
+  // TODO: Accumulator instead of _A versions of instructions?
   case object Immediate extends AddressingMode
   case object ZeroPage extends AddressingMode
   case object ZeroPageX extends AddressingMode

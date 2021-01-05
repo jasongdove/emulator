@@ -10,6 +10,29 @@ package object emulator {
   }
 
   implicit class CpuFlagsValueSetExtensions(flags: CpuFlags.ValueSet) {
+    def toByteInstruction: Int = {
+      var result = 0x30
+      if (flags.contains(CpuFlags.Carry)) result |= 0x01
+      if (flags.contains(CpuFlags.Zero)) result |= 0x02
+      if (flags.contains(CpuFlags.InterruptDisable)) result |= 0x04
+      if (flags.contains(CpuFlags.DecimalMode)) result |= 0x08
+      if (flags.contains(CpuFlags.Overflow)) result |= 0x40
+      if (flags.contains(CpuFlags.Negative)) result |= 0x80
+      result
+    }
+
+    def shiftedLeft(oldValue: Int, newValue: Int): CpuFlags.ValueSet =
+      flags
+        .withCarry((oldValue & 0x80) != 0x00)
+        .withZero(newValue == 0x00)
+        .withNegative((newValue & 0x80) != 0x00)
+
+    def shiftedRight(oldValue: Int, newValue: Int): CpuFlags.ValueSet =
+      flags
+        .withCarry((oldValue & 0x01) != 0x00)
+        .withZero(newValue == 0x00)
+        .withNegative((newValue & 0x80) != 0x00)
+
     def withCarry(condition: => Boolean): CpuFlags.ValueSet =
       withFlag(condition, CpuFlags.Carry)
 
