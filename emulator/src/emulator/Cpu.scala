@@ -62,17 +62,28 @@ case class Cpu(memory: MemoryMap) {
           opcode.instruction match {
             case Instruction.ADC   => loop(adc(opcode, nextState))
             case Instruction.AND   => loop(and(opcode, nextState))
+            case Instruction.ASL_A => loop(asl_a(opcode, nextState))
+            case Instruction.ASL   => loop(asl(opcode, nextState))
             case Instruction.BCC   => loop(bcc(nextState))
             case Instruction.BCS   => loop(bcs(nextState))
             case Instruction.BEQ   => loop(beq(nextState))
+            case Instruction.BIT   => loop(bit(opcode, nextState))
+            case Instruction.BMI   => loop(bmi(nextState))
             case Instruction.BNE   => loop(bne(nextState))
             case Instruction.BPL   => loop(bpl(nextState))
             case Instruction.BRK   => CpuRunResult(nextState, None)
+            case Instruction.BVC   => loop(bvc(nextState))
+            case Instruction.BVS   => loop(bvs(nextState))
             case Instruction.CLC   => loop(clc(opcode, nextState))
+            case Instruction.CLD   => loop(cld(opcode, nextState))
+            case Instruction.CLI   => loop(cli(opcode, nextState))
+            case Instruction.CLV   => loop(clv(opcode, nextState))
             case Instruction.CMP   => loop(cmp(opcode, nextState))
             case Instruction.CPX   => loop(cpx(opcode, nextState))
+            case Instruction.CPY   => loop(cpy(opcode, nextState))
             case Instruction.DEC   => loop(dec(opcode, nextState))
             case Instruction.DEX   => loop(dex(opcode, nextState))
+            case Instruction.DEY   => loop(dey(opcode, nextState))
             case Instruction.INX   => loop(inx(opcode, nextState))
             case Instruction.JMP   => loop(jmp(opcode, nextState))
             case Instruction.JSR   => loop(jsr(opcode, nextState))
@@ -118,6 +129,29 @@ case class Cpu(memory: MemoryMap) {
       }
       .getOrElse(state.next(opcode))
 
+  private def asl_a(opcode: OpCode, state: CpuState): CpuState = {
+    val result = state.a << 1
+    val flags = state.flags
+      .withCarry((state.a & 0x80) == 0x01)
+      .withZero(result == 0)
+      .withNegative((result & 0x80) == 0x01)
+    CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
+  }
+
+  private def asl(opcode: OpCode, state: CpuState): CpuState = {
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val contents = memory.read(address)
+        val result = contents << 1
+        val flags = state.flags
+          .withCarry((contents & 0x80) == 0x01)
+          .withZero(result == 0)
+          .withNegative((result & 0x80) == 0x01)
+        memory.write(address, result)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+  }
   private def bcc(state: CpuState): CpuState =
     branch(!state.flags.contains(CpuFlags.Carry), state)
 
@@ -127,20 +161,53 @@ case class Cpu(memory: MemoryMap) {
   private def beq(state: CpuState): CpuState =
     branch(state.flags.contains(CpuFlags.Zero), state)
 
+  private def bit(opcode: OpCode, state: CpuState): CpuState =
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val contents = memory.read(address)
+        val flags = state.flags
+          .withZero((contents & state.a) == 0)
+          .withOverflow((contents & 0x40) == 1)
+          .withNegative((contents & 0x80) == 1)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+
+  private def bmi(state: CpuState): CpuState =
+    branch(state.flags.contains(CpuFlags.Negative), state)
+
   private def bne(state: CpuState): CpuState =
     branch(!state.flags.contains(CpuFlags.Zero), state)
 
   private def bpl(state: CpuState): CpuState =
     branch(!state.flags.contains(CpuFlags.Negative), state)
 
+  private def bvc(state: CpuState): CpuState =
+    branch(!state.flags.contains(CpuFlags.Overflow), state)
+
+  private def bvs(state: CpuState): CpuState =
+    branch(state.flags.contains(CpuFlags.Overflow), state)
+
   private def clc(opcode: OpCode, state: CpuState): CpuState =
     state.nextFlags(state.flags.withCarry(false), opcode)
+
+  private def cld(opcode: OpCode, state: CpuState): CpuState =
+    state.nextFlags(state.flags.withDecimalMode(false), opcode)
+
+  private def cli(opcode: OpCode, state: CpuState): CpuState =
+    state.nextFlags(state.flags.withInterruptDisable(false), opcode)
+
+  private def clv(opcode: OpCode, state: CpuState): CpuState =
+    state.nextFlags(state.flags.withOverflow(false), opcode)
 
   private def cmp(opcode: OpCode, state: CpuState): CpuState =
     compare(state.a, opcode, state)
 
   private def cpx(opcode: OpCode, state: CpuState): CpuState =
     compare(state.x, opcode, state)
+
+  private def cpy(opcode: OpCode, state: CpuState): CpuState =
+    compare(state.y, opcode, state)
 
   private def dec(opcode: OpCode, state: CpuState): CpuState =
     getOperandAddress(opcode, state)
@@ -153,6 +220,9 @@ case class Cpu(memory: MemoryMap) {
 
   private def dex(opcode: OpCode, state: CpuState): CpuState =
     state.nextX(state.x.wrapSubUByte(1), opcode)
+
+  private def dey(opcode: OpCode, state: CpuState): CpuState =
+    state.nextY(state.y.wrapSubUByte(1), opcode)
 
   private def inx(opcode: OpCode, state: CpuState): CpuState =
     state.nextX(state.x.wrapAddUByte(1), opcode)

@@ -16,6 +16,12 @@ package object emulator {
     def withZero(condition: => Boolean): CpuFlags.ValueSet =
       withFlag(condition, CpuFlags.Zero)
 
+    def withInterruptDisable(condition: => Boolean): CpuFlags.ValueSet =
+      withFlag(condition, CpuFlags.InterruptDisable)
+
+    def withDecimalMode(condition: => Boolean): CpuFlags.ValueSet =
+      withFlag(condition, CpuFlags.DecimalMode)
+
     def withOverflow(condition: => Boolean): CpuFlags.ValueSet =
       withFlag(condition, CpuFlags.Overflow)
 
