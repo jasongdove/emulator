@@ -12,5 +12,4 @@ object AddressingMode {
   case object AbsoluteY extends AddressingMode
   case object IndirectX extends AddressingMode
   case object IndirectY extends AddressingMode
-  case object NoneAddressing extends AddressingMode
 }

@@ -1,6 +1,6 @@
 package emulator.model
 
-object CpuStatus extends Enumeration {
-  type CpuStatus = Value
+object CpuFlags extends Enumeration {
+  type CpuFlags = Value
   val None, Carry, Zero, InterruptDisable, DecimalMode, BreakCommand, Overflow, Negative = Value
 }

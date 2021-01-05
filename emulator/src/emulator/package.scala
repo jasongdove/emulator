@@ -3,6 +3,6 @@ package object emulator {
     def toUByte: Int = value % 256
     def wrapAddUByte(add: Int): Int = (value + add) % 256
     def wrapAddUShort(add: Int): Int = (value + add) % 65536
-    def wrapSubUByte(sub: Int): Int = (value - sub) % 256 // TODO: this is wrong
+    def wrapSubUByte(sub: Int): Int = (value - sub) % 256
   }
 }

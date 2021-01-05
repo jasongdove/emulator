@@ -20,13 +20,13 @@ object Main {
       0x00, 0xa5, 0xfe, 0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60,
       0xa2, 0x00, 0xea, 0xea, 0xca, 0xd0, 0xfb, 0x60).map(_.toUByte)
     //val program = Array(0xa9, 0x05, 0x00).map(_.toUByte)
-    val cpu = CPU.load(program, 0x600)
+    val cpu = Cpu.load(program, 0x600)
     cpu.run() match {
-      case None =>
-        println(cpu)
-      case Some(e: UnsupportedOpCode) =>
+      case CpuRunResult(state, None) =>
+        println(state)
+      case CpuRunResult(state, Some(e: UnsupportedOpCode)) =>
         println(e.getMessage)
-        println(cpu)
+        println(state)
     }
   }
 }
