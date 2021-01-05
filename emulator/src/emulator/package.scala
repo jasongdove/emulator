@@ -2,10 +2,11 @@ import emulator.model.CpuFlags
 
 package object emulator {
   implicit class IntExtensions(value: Int) {
-    def toUByte: Int = value % 256
-    def wrapAddUByte(add: Int): Int = (value + add) % 256
+    def toUByte: Int = value & 0xff
+    def toSignedByte: Int = value.toByte.toInt
+    def wrapAddUByte(add: Int): Int = (value + add).toUByte
     def wrapAddUShort(add: Int): Int = (value + add) % 65536
-    def wrapSubUByte(sub: Int): Int = (value - sub) % 256
+    def wrapSubUByte(sub: Int): Int = (value - sub).toUByte
   }
 
   implicit class CpuFlagsValueSetExtensions(flags: CpuFlags.ValueSet) {

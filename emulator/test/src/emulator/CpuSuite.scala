@@ -184,4 +184,34 @@ object CpuSuite extends SimpleIOSuite {
       _ <- expect(result.state.flags.contains(CpuFlags.Overflow)).failFast
     } yield success
   }
+
+  simpleTest("CMP should set zero flag") {
+    val program = Array(0xc9, 0x17, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0x17, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0x17).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Zero)).failFast
+    } yield success
+  }
+
+  simpleTest("CMP should set negative flag") {
+    val program = Array(0xc9, 0xff, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0xf0, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0xf0).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Negative)).failFast
+    } yield success
+  }
+
+  simpleTest("CMP should set carry flag") {
+    val program = Array(0xc9, 0x80, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0x81, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0x81).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Carry)).failFast
+    } yield success
+  }
 }
