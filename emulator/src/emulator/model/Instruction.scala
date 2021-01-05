@@ -27,7 +27,10 @@ object Instruction {
   case object DEC extends Instruction
   case object DEX extends Instruction
   case object DEY extends Instruction
+  case object EOR extends Instruction
+  case object INC extends Instruction
   case object INX extends Instruction
+  case object INY extends Instruction
   case object JMP extends Instruction
   case object JSR extends Instruction
   case object LDA extends Instruction

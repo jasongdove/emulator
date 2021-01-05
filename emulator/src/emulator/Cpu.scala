@@ -34,8 +34,8 @@ case class CpuState(a: Int, x: Int, y: Int, stackPointer: Int, programCounter: I
 
   private def updateZeroAndNegativeFlags(result: Int): CpuFlags.ValueSet =
     flags
-      .withZero(result == 0)
-      .withNegative((result & 0x80) != 0)
+      .withZero(result == 0x00)
+      .withNegative((result & 0x80) != 0x00)
 }
 
 case class CpuRunResult(state: CpuState, error: Option[EmulatorError])
@@ -84,7 +84,10 @@ case class Cpu(memory: MemoryMap) {
             case Instruction.DEC   => loop(dec(opcode, nextState))
             case Instruction.DEX   => loop(dex(opcode, nextState))
             case Instruction.DEY   => loop(dey(opcode, nextState))
+            case Instruction.EOR   => loop(eor(opcode, nextState))
+            case Instruction.INC   => loop(inc(opcode, nextState))
             case Instruction.INX   => loop(inx(opcode, nextState))
+            case Instruction.INY   => loop(iny(opcode, nextState))
             case Instruction.JMP   => loop(jmp(opcode, nextState))
             case Instruction.JSR   => loop(jsr(opcode, nextState))
             case Instruction.LDA   => loop(lda(opcode, nextState))
@@ -114,9 +117,9 @@ case class Cpu(memory: MemoryMap) {
         val sum = state.a + contents + carry
         val flags = state.flags
           .withCarry(sum > 255)
-          .withZero(sum == 0)
-          .withOverflow(((state.a ^ sum) & (contents ^ sum) & 0x80) != 0)
-          .withNegative((sum & 0x80) != 0)
+          .withZero(sum == 0x00)
+          .withOverflow(((state.a ^ sum) & (contents ^ sum) & 0x80) != 0x00)
+          .withNegative((sum & 0x80) != 0x00)
         CpuState(sum.toUByte, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
       }
       .getOrElse(state.next(opcode))
@@ -132,9 +135,9 @@ case class Cpu(memory: MemoryMap) {
   private def asl_a(opcode: OpCode, state: CpuState): CpuState = {
     val result = state.a << 1
     val flags = state.flags
-      .withCarry((state.a & 0x80) == 0x01)
-      .withZero(result == 0)
-      .withNegative((result & 0x80) == 0x01)
+      .withCarry((state.a & 0x80) != 0x00)
+      .withZero(result == 0x00)
+      .withNegative((result & 0x80) != 0x00)
     CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
   }
 
@@ -144,9 +147,9 @@ case class Cpu(memory: MemoryMap) {
         val contents = memory.read(address)
         val result = contents << 1
         val flags = state.flags
-          .withCarry((contents & 0x80) == 0x01)
-          .withZero(result == 0)
-          .withNegative((result & 0x80) == 0x01)
+          .withCarry((contents & 0x80) != 0x00)
+          .withZero(result == 0x00)
+          .withNegative((result & 0x80) != 0x00)
         memory.write(address, result)
         state.nextFlags(flags, opcode)
       }
@@ -166,9 +169,9 @@ case class Cpu(memory: MemoryMap) {
       .map { address =>
         val contents = memory.read(address)
         val flags = state.flags
-          .withZero((contents & state.a) == 0)
-          .withOverflow((contents & 0x40) == 1)
-          .withNegative((contents & 0x80) == 1)
+          .withZero((contents & state.a) == 0x00)
+          .withOverflow((contents & 0x40) != 0x00)
+          .withNegative((contents & 0x80) != 0x00)
         state.nextFlags(flags, opcode)
       }
       .getOrElse(state.next(opcode))
@@ -224,8 +227,34 @@ case class Cpu(memory: MemoryMap) {
   private def dey(opcode: OpCode, state: CpuState): CpuState =
     state.nextY(state.y.wrapSubUByte(1), opcode)
 
+  private def eor(opcode: OpCode, state: CpuState): CpuState =
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val a = memory.read(address) ^ state.a
+        val flags = state.flags
+          .withZero(a == 0x00)
+          .withNegative((a & 0x80) != 0x00)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+
+  private def inc(opcode: OpCode, state: CpuState): CpuState =
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val result = memory.read(address).wrapAddUByte(1)
+        val flags = state.flags
+          .withZero(result == 0x00)
+          .withNegative((result & 0x80) != 0x00)
+        memory.write(address, result)
+        state.nextFlags(flags, opcode)
+      }
+      .getOrElse(state.next(opcode))
+
   private def inx(opcode: OpCode, state: CpuState): CpuState =
     state.nextX(state.x.wrapAddUByte(1), opcode)
+
+  private def iny(opcode: OpCode, state: CpuState): CpuState =
+    state.nextY(state.y.wrapAddUByte(1), opcode)
 
   private def jmp(opcode: OpCode, state: CpuState): CpuState =
     getOperandAddress(opcode, state)
@@ -260,8 +289,8 @@ case class Cpu(memory: MemoryMap) {
   private def lsr_a(opcode: OpCode, state: CpuState): CpuState = {
     val result = state.a >> 1
     val flags = state.flags
-      .withCarry((result & 0x01) == 0x01)
-      .withZero(result == 0)
+      .withCarry((result & 0x01) != 0x00)
+      .withZero(result == 0x00)
       .withNegative(false)
     CpuState(result, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
   }
@@ -271,8 +300,8 @@ case class Cpu(memory: MemoryMap) {
       .map { address =>
         val result = memory.read(address) >> 1
         val flags = state.flags
-          .withCarry((result & 0x01) == 0x01)
-          .withZero(result == 0)
+          .withCarry((result & 0x01) != 0x00)
+          .withZero(result == 0x00)
           .withNegative(false)
         memory.write(address, result)
         state.nextFlags(flags, opcode)
@@ -292,10 +321,10 @@ case class Cpu(memory: MemoryMap) {
         val carry = if (!state.flags.contains(CpuFlags.Carry)) 1 else 0
         val sum = state.a - contents - carry
         val flags = state.flags
-          .withCarry(sum < 0)
-          .withZero(sum == 0)
-          .withOverflow(((state.a ^ sum) & (contents ^ sum) & 0x80) != 0)
-          .withNegative((sum & 0x80) != 0)
+          .withCarry(sum < 0x00)
+          .withZero(sum == 0x00)
+          .withOverflow(((state.a ^ sum) & (contents ^ sum) & 0x80) != 0x00)
+          .withNegative((sum & 0x80) != 0x00)
         CpuState(sum.toUByte, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
       }
       .getOrElse(state.next(opcode))
@@ -330,8 +359,8 @@ case class Cpu(memory: MemoryMap) {
         val diff = input - contents
         val flags = state.flags
           .withCarry(input >= contents)
-          .withZero(diff == 0)
-          .withNegative((diff & 0x80) != 0)
+          .withZero(diff == 0x00)
+          .withNegative((diff & 0x80) != 0x00)
         state.nextFlags(flags, opcode)
       }
       .getOrElse(state.next(opcode))
