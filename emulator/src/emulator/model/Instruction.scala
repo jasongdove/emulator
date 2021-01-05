@@ -12,4 +12,5 @@ object Instruction {
   case object STA extends Instruction
   case object AND extends Instruction
   case object CLC extends Instruction
+  case object ADC extends Instruction
 }

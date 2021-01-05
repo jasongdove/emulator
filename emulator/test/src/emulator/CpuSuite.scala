@@ -139,10 +139,49 @@ object CpuSuite extends SimpleIOSuite {
   simpleTest("CLC should clear carry flag") {
     val program = Array(0x18, 0x00)
     val cpu = Cpu.load(program)
-    val state = CpuState(0, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet(CpuFlags.Carry))
     for {
-      result <- IO(cpu.run(Some(state)))
+      result <- IO(cpu.run(Some(CpuState(0, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet(CpuFlags.Carry)))))
       _ <- expect(!result.state.flags.contains(CpuFlags.Carry)).failFast
+    } yield success
+  }
+
+  simpleTest("ADC should set zero flag") {
+    val program = Array(0x69, 0x00, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0x00).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Zero)).failFast
+    } yield success
+  }
+
+  simpleTest("ADC should set negative flag") {
+    val program = Array(0x69, 0xff, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0xff).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Negative)).failFast
+    } yield success
+  }
+
+  simpleTest("ADC should set carry flag") {
+    val program = Array(0x69, 0x80, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0x81, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0x01).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Carry)).failFast
+    } yield success
+  }
+
+  simpleTest("ADC should set overflow flag") {
+    val program = Array(0x69, 0x80, 0x00)
+    val cpu = Cpu.load(program)
+    for {
+      result <- IO(cpu.run(Some(CpuState(a = 0x80, 0, 0, 0xff, 0x8000, CpuFlags.ValueSet.empty))))
+      _ <- expect(result.state.a == 0x00).failFast
+      _ <- expect(result.state.flags.contains(CpuFlags.Overflow)).failFast
     } yield success
   }
 }

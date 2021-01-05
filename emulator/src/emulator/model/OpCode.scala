@@ -32,6 +32,14 @@ object OpCode {
     OpCode(0x39, Instruction.AND, 3, 4, Some(AddressingMode.AbsoluteY)),
     OpCode(0x21, Instruction.AND, 2, 6, Some(AddressingMode.IndirectX)),
     OpCode(0x31, Instruction.AND, 2, 5, Some(AddressingMode.IndirectY)),
-    OpCode(0x18, Instruction.CLC, 1, 2, None)
+    OpCode(0x18, Instruction.CLC, 1, 2, None),
+    OpCode(0x69, Instruction.ADC, 2, 2, Some(AddressingMode.Immediate)),
+    OpCode(0x65, Instruction.ADC, 2, 3, Some(AddressingMode.ZeroPage)),
+    OpCode(0x75, Instruction.ADC, 2, 4, Some(AddressingMode.ZeroPageX)),
+    OpCode(0x6d, Instruction.ADC, 3, 4, Some(AddressingMode.Absolute)),
+    OpCode(0x7d, Instruction.ADC, 3, 4, Some(AddressingMode.AbsoluteX)),
+    OpCode(0x79, Instruction.ADC, 3, 4, Some(AddressingMode.AbsoluteY)),
+    OpCode(0x61, Instruction.ADC, 2, 6, Some(AddressingMode.IndirectX)),
+    OpCode(0x71, Instruction.ADC, 2, 5, Some(AddressingMode.IndirectY))
   ).map(opcode => opcode.code -> opcode).toMap
 }

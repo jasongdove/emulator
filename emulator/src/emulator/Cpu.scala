@@ -24,12 +24,12 @@ case class CpuState(a: Int, x: Int, y: Int, stackPointer: Int, programCounter: I
     CpuState(a, x, y, sp, add, flags)
 
   def clearCarry(): CpuState =
-    CpuState(a, x, y, stackPointer, programCounter, flags - CpuFlags.Carry)
+    CpuState(a, x, y, stackPointer, programCounter, flags.withCarry(false))
 
-  private def updateZeroAndNegativeFlags(result: Int): CpuFlags.ValueSet = {
-    val withZero = if (result == 0) flags + CpuFlags.Zero else flags - CpuFlags.Zero
-    if ((result & 0x80) != 0) withZero + CpuFlags.Negative else withZero - CpuFlags.Negative
-  }
+  private def updateZeroAndNegativeFlags(result: Int): CpuFlags.ValueSet =
+    flags
+      .withZero(result == 0)
+      .withNegative((result & 0x80) != 0)
 }
 
 case class CpuRunResult(state: CpuState, error: Option[EmulatorError])
@@ -48,7 +48,7 @@ case class Cpu(memory: MemoryMap) {
       val nextState = state.next()
 
       OpCode.opCodes.get(current) match {
-        case None => CpuRunResult(nextState, Some(UnsupportedOpCode(current)))
+        case None         => CpuRunResult(nextState, Some(UnsupportedOpCode(current)))
         case Some(opcode) =>
 //          println(state)
 //          val bytes = memory.memory.slice(state.programCounter, state.programCounter + opcode.bytes).drop(1)
@@ -63,6 +63,7 @@ case class Cpu(memory: MemoryMap) {
             case Instruction.STA => loop(sta(opcode, nextState))
             case Instruction.AND => loop(and(opcode, nextState))
             case Instruction.CLC => loop(clc(nextState))
+            case Instruction.ADC => loop(adc(opcode, nextState))
           }
       }
     }
@@ -111,6 +112,21 @@ case class Cpu(memory: MemoryMap) {
       .getOrElse(state)
 
   def clc(state: CpuState): CpuState = state.clearCarry()
+
+  def adc(opcode: OpCode, state: CpuState): CpuState =
+    getOperandAddress(opcode, state)
+      .map { address =>
+        val contents = memory.read(address)
+        val carry = if (state.flags.contains(CpuFlags.Carry)) 1 else 0
+        val sum = state.a + contents + carry
+        val flags = state.flags
+          .withCarry(sum > 255)
+          .withZero(sum == 0)
+          .withOverflow(((state.a ^ sum) & (contents ^ sum) & 0x80) != 0)
+          .withNegative((sum & 0x80) != 0)
+        CpuState(sum.toUByte, state.x, state.y, state.stackPointer, state.programCounter + opcode.bytes - 1, flags)
+      }
+      .getOrElse(state)
 
   def getOperandAddress(opcode: OpCode, state: CpuState): Option[Int] =
     opcode.addressingMode match {
