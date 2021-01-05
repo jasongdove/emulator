@@ -85,4 +85,14 @@ object AddressingModeSuite extends SimpleIOSuite {
       _ <- expect(result.state.a == 0x05).failFast
     } yield success
   }
+
+  simpleTest("JMP Indirect") {
+    val program = Array(0x6c, 0x20, 0x01, 0x00)
+    val cpu = Cpu.load(program)
+    cpu.memory.writeUShort(0x0120, 0xbafc)
+    for {
+      result <- IO(cpu.run())
+      _ <- expect(result.state.programCounter == 0xbafd).failFast
+    } yield success
+  }
 }
